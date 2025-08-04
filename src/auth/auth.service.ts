@@ -1,107 +1,54 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
-import { CognitoIdentityProviderClient, SignUpCommand, InitiateAuthCommand, ConfirmSignUpCommand } from '@aws-sdk/client-cognito-identity-provider';
-import * as crypto from 'crypto';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import { Injectable } from '@nestjs/common';
+import { AuthServiceFactory, AuthProviderType } from './services/auth.service.factory';
+import { IAuthResponse } from './interfaces/auth-response.interface';
 
 @Injectable()
 export class AuthService {
-  private cognitoClient = new CognitoIdentityProviderClient({ region: process.env.AWS_REGION });
+  private authProvider: any;
 
-  private calculateSecretHash(username: string): string {
-    const message = username + process.env.COGNITO_CLIENT_ID!;
-    const hmac = crypto.createHmac('SHA256', process.env.COGNITO_CLIENT_SECRET!);
-    hmac.update(message);
-    return hmac.digest('base64');
+  constructor(private authServiceFactory: AuthServiceFactory) {
+    // Default to Cognito, but can be configured via environment variable
+    const providerType = (process.env.AUTH_PROVIDER as AuthProviderType) || AuthProviderType.COGNITO;
+    this.authProvider = this.authServiceFactory.getProvider(providerType);
   }
 
   async signUp(email: string, password: string, name: string): Promise<any> {
-    try {
-      const command = new SignUpCommand({
-        ClientId: process.env.COGNITO_CLIENT_ID,
-        Username: email,
-        Password: password,
-        SecretHash: this.calculateSecretHash(email),
-        UserAttributes: [
-          {
-            Name: 'email',
-            Value: email,
-          },
-          {
-            Name: 'name',
-            Value: name,
-          },
-        ],
-      });
-
-      return await this.cognitoClient.send(command);
-    } catch (error) {
-      if (error.name === 'UsernameExistsException') {
-        throw new BadRequestException('User already exists with this email');
-      }
-      if (error.name === 'InvalidPasswordException') {
-        throw new BadRequestException('Password does not meet requirements');
-      }
-      if (error.name === 'InvalidParameterException') {
-        throw new BadRequestException('Invalid input parameters');
-      }
-      throw new BadRequestException(error.message || 'Signup failed');
-    }
+    return await this.authProvider.signUp(email, password, { name });
   }
 
-  async signIn(email: string, password: string): Promise<any> {
-    try {
-      const command = new InitiateAuthCommand({
-        ClientId: process.env.COGNITO_CLIENT_ID,
-        AuthFlow: 'USER_PASSWORD_AUTH',
-        AuthParameters: {
-          USERNAME: email,
-          PASSWORD: password,
-          SECRET_HASH: this.calculateSecretHash(email),
-        },
-      });
-
-      const result = await this.cognitoClient.send(command);
-      return result.AuthenticationResult?.IdToken;
-    } catch (error) {
-      if (error.name === 'NotAuthorizedException') {
-        throw new UnauthorizedException('Incorrect email or password');
-      }
-      if (error.name === 'UserNotConfirmedException') {
-        throw new BadRequestException('Please confirm your email before signing in');
-      }
-      if (error.name === 'UserNotFoundException') {
-        throw new UnauthorizedException('User not found');
-      }
-      if (error.name === 'TooManyRequestsException') {
-        throw new BadRequestException('Too many failed attempts. Please try again later');
-      }
-      throw new UnauthorizedException('Authentication failed');
-    }
+  async signIn(email: string, password: string): Promise<IAuthResponse> {
+    return await this.authProvider.signIn(email, password);
   }
 
   async confirmSignUp(email: string, code: string): Promise<any> {
-    try {
-      const command = new ConfirmSignUpCommand({
-        ClientId: process.env.COGNITO_CLIENT_ID,
-        Username: email,
-        ConfirmationCode: code,
-        SecretHash: this.calculateSecretHash(email),
-      });
+    return await this.authProvider.confirmSignUp(email, code);
+  }
 
-      return await this.cognitoClient.send(command);
-    } catch (error) {
-      if (error.name === 'CodeMismatchException') {
-        throw new BadRequestException('Invalid confirmation code');
-      }
-      if (error.name === 'ExpiredCodeException') {
-        throw new BadRequestException('Confirmation code has expired');
-      }
-      if (error.name === 'UserNotFoundException') {
-        throw new BadRequestException('User not found');
-      }
-      throw new BadRequestException('Confirmation failed');
-    }
+  async forgotPassword(email: string): Promise<any> {
+    return await this.authProvider.forgotPassword(email);
+  }
+
+  async confirmForgotPassword(email: string, code: string, newPassword: string): Promise<any> {
+    return await this.authProvider.confirmForgotPassword(email, code, newPassword);
+  }
+
+  async resendConfirmationCode(email: string): Promise<any> {
+    return await this.authProvider.resendConfirmationCode(email);
+  }
+
+  async changePassword(accessToken: string, currentPassword: string, newPassword: string): Promise<any> {
+    return await this.authProvider.changePassword(accessToken, currentPassword, newPassword);
+  }
+
+  async updateProfile(accessToken: string, attributes: Record<string, any>): Promise<any> {
+    return await this.authProvider.updateProfile(accessToken, attributes);
+  }
+
+  async getUserProfile(accessToken: string): Promise<any> {
+    return await this.authProvider.getUserProfile(accessToken);
+  }
+
+  async verifyToken(token: string, tokenType?: 'id' | 'access'): Promise<any> {
+    return await this.authProvider.verifyToken(token, tokenType);
   }
 }

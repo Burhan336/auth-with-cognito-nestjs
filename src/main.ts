@@ -11,7 +11,7 @@ async function bootstrap() {
 
   // Swagger configuration
   const config = new DocumentBuilder()
-    .setTitle('Adjudication API')
+    .setTitle('Auth Server API')
     .setDescription('Authentication API with AWS Cognito')
     .setVersion('1.0')
     .addBearerAuth(

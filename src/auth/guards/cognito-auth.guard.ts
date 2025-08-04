@@ -1,20 +1,9 @@
 import { Injectable, ExecutionContext, UnauthorizedException } from '@nestjs/common';
-import { CognitoJwtVerifier } from 'aws-jwt-verify';
-import * as dotenv from 'dotenv';
-
-dotenv.config();
+import { AuthService } from '../auth.service';
 
 @Injectable()
 export class CognitoAuthGuard {
-  private verifier: any;
-
-  constructor() {
-    this.verifier = CognitoJwtVerifier.create({
-      userPoolId: process.env.COGNITO_USER_POOL_ID!,
-      tokenUse: 'id',
-      clientId: process.env.COGNITO_CLIENT_ID!,
-    });
-  }
+  constructor(private authService: AuthService) {}
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
@@ -27,15 +16,33 @@ export class CognitoAuthGuard {
     const token = authHeader.substring(7);
 
     try {
-      const payload = await this.verifier.verify(token);
+      let payload;
+      let tokenType = 'id';
+      
+      // Try ID token first
+      try {
+        payload = await this.authService.verifyToken(token, 'id');
+      } catch (idTokenError) {
+        // If ID token fails, try access token
+        try {
+          payload = await this.authService.verifyToken(token, 'access');
+          tokenType = 'access';
+        } catch (accessTokenError) {
+          throw new UnauthorizedException('Invalid token');
+        }
+      }
       
       // Attach user info to request
       request.user = {
         userId: payload.sub,
-        email: payload.email,
+        email: payload.email || payload.username,
         name: payload.name,
         emailVerified: payload.email_verified
       };
+
+      // Store the original token
+      request.accessToken = token;
+      request.tokenType = tokenType;
 
       return true;
     } catch (error) {

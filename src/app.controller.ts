@@ -1,7 +1,7 @@
 import { Controller, Get, UseGuards, Post, Body, Request } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse, ApiBearerAuth, ApiBody, ApiProperty } from '@nestjs/swagger';
 import { AppService } from './app.service';
-import { CognitoAuthGuard } from './auth/cognito-auth.guard';
+import { CognitoAuthGuard } from './auth/guards/cognito-auth.guard';
 
 // DTO for test endpoint
 class TestDataDto {
@@ -9,14 +9,14 @@ class TestDataDto {
   message: string;
 }
 
-@ApiTags('App')
+@ApiTags('Auth Server')
 @Controller()
 export class AppController {
   constructor(private readonly appService: AppService) {}
 
   @Get()
-  @ApiOperation({ summary: 'Get hello message' })
-  @ApiResponse({ status: 200, description: 'Hello message' })
+  @ApiOperation({ summary: 'Get server status' })
+  @ApiResponse({ status: 200, description: 'Server is running' })
   getHello(): string {
     return this.appService.getHello();
   }
