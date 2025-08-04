@@ -1,7 +1,7 @@
 {
-  "name": "auth-with-cognito-nestjs",
+  "name": "auth-server",
   "version": "0.0.1",
-  "description": "",
+  "description": "Authentication server with AWS Cognito integration",
   "author": "",
   "private": true,
   "license": "UNLICENSED",

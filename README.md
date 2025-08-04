@@ -74,9 +74,9 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
 
-# NestJS Authentication with AWS Cognito
+# Auth Server
 
-A robust NestJS application that implements user authentication using AWS Cognito. This project provides a complete authentication system with user registration, login, email confirmation, and JWT token-based authorization.
+A robust NestJS authentication server that implements user authentication using AWS Cognito. This project provides a complete authentication system with user registration, login, email confirmation, and JWT token-based authorization.
 
 ## 🚀 Features
 
@@ -88,6 +88,7 @@ A robust NestJS application that implements user authentication using AWS Cognit
 - **Input Validation**: Comprehensive request validation using class-validator
 - **Error Handling**: Detailed error responses for various authentication scenarios
 - **Protected Routes**: Example protected endpoints demonstrating JWT authentication
+- **Pluggable Architecture**: Easy to switch between different auth providers (Cognito, Supabase, Firebase, etc.)
 
 ## 🛠️ Tech Stack
 
